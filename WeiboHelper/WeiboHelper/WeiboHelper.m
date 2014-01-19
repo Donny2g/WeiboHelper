@@ -46,38 +46,47 @@
 {
     [WeiboSDK logOutWithToken:[self getWBToken] delegate:self withTag:@"user1"];
 }
--(void)saveWBToken:(NSString*)wbtoken{
-    if (![[NSUserDefaults standardUserDefaults] boolForKey:@"everLaunched"]) {
-        [[NSUserDefaults standardUserDefaults] setBool:YES forKey:@"everLaunched"];
-        [[NSUserDefaults standardUserDefaults] setBool:YES forKey:@"firstLaunch"];
-    }
-    else{
-        [[NSUserDefaults standardUserDefaults] setBool:NO forKey:@"firstLaunch"];
-    }
-    
-    
-    if ([[NSUserDefaults standardUserDefaults] boolForKey:@"firstLaunch"]) {
-        // 這裡判斷是否第一次
-        UIAlertView * alert =[[UIAlertView alloc] initWithTitle:@"第一次"
-                                                        message:@"進入App"
-                                                       delegate:self
-                                              cancelButtonTitle:@"我知道了"
-                                              otherButtonTitles:nil];
-        [alert show];
-        
-    }
 
+#pragma mark- token
+-(void)setWBToken:(NSString*)wbtoken{
+    [[NSUserDefaults standardUserDefaults] setObject:wbtoken forKey:kToken];
 }
 
-#pragma mark- getInformation
 -(NSString*)getWBToken{
-    NSString* token;
-    return token;
+    if (![[NSUserDefaults standardUserDefaults] stringForKey:kToken]) {
+        return nil;
+    }
+    return [[NSUserDefaults standardUserDefaults] stringForKey:kToken];
 }
--(NSDictionary*)getUserInfo{
-    NSDictionary* dic;
-    return dic;
+
+#pragma mark- userInfo
+-(void)_setUserInfo:(NSDictionary*)userInfo{
+    
+    //    request.shouldOpenWeiboAppInstallPageIfNotInstalled = NO;
+    [[NSUserDefaults standardUserDefaults] setObject:userInfo forKey:kUserInfo];
 }
+
+-(void)getUserInfoWithCompletion:(RequestCompletion)completion{
+    if (![[NSUserDefaults standardUserDefaults] dictionaryForKey:kUserInfo]) {
+        return;
+    }
+    self.requestCompletion = completion;
+    NSDictionary* userInfo =[[NSUserDefaults standardUserDefaults] dictionaryForKey:kUserInfo];
+    NSString* url = @"http://api.weibo.com/2/users/show.json";
+    
+    //測試用(官方帳號)
+//    NSDictionary* params = @{@"access_token": @"2.00zBrJ2EjQ8zzC15a429a8ff2pybUD",
+//                             @"source": @"2045436852",
+//                             @"uid": @"1904178193"};
+    
+    
+    NSDictionary* params = @{@"access_token": [userInfo objectForKey:@"access_token"],
+                             @"source": kAppKey,
+                             @"uid": [userInfo objectForKey:@"uid"]};
+    
+    [WBHttpRequest requestWithAccessToken:[self getWBToken] url:url httpMethod:@"GET" params:params delegate:self withTag:@"user"];
+}
+
 
 #pragma mark- WeiboSDKDelegate
 - (void)didReceiveWeiboRequest:(WBBaseRequest *)request
@@ -88,7 +97,7 @@
         //[self.viewController presentModalViewController:controller animated:YES];
     }
 }
-
+//這裡是用來接，微博App收到
 - (void)didReceiveWeiboResponse:(WBBaseResponse *)response
 {
     if ([response isKindOfClass:WBSendMessageToWeiboResponse.class])
@@ -111,21 +120,24 @@
                                                        delegate:nil
                                               cancelButtonTitle:@"确定"
                                               otherButtonTitles:nil];
-        
+        [alert show];        
         //存入token
-        [self saveWBToken:[(WBAuthorizeResponse *)response accessToken]];
+        [self setWBToken:[(WBAuthorizeResponse *)response accessToken]];
+        //存入userInfo
+        [self _setUserInfo:response.userInfo];
+        NSLog(@"userInfo:%@",response.userInfo);
         
-        [alert show];
     }
 }
 
+//當你用這個方法去呼叫時[WBHttpRequest requestWithAccessToken:...]，就會call back回下面的Delegate
 #pragma mark- WBHttpRequestDelegate
 -(void)alertView:(UIAlertView*)alertView clickedButtonAtIndex:(NSInteger)buttonIndex
 {
-    UITextField *textField=[alertView textFieldAtIndex:0];
-    NSString *jsonData = @"{\"text\": \"新浪新闻是新浪网官方出品的新闻客户端，用户可以第一时间获取新浪网提供的高品质的全球资讯新闻，随时随地享受专业的资讯服务，加入一起吧\",\"url\": \"http://app.sina.com.cn/appdetail.php?appID=84475\",\"invite_logo\":\"http://sinastorage.com/appimage/iconapk/1b/75/76a9bb371f7848d2a7270b1c6fcf751b.png\"}";
+    //UITextField *textField=[alertView textFieldAtIndex:0];
+    //NSString *jsonData = @"{\"text\": \"新浪新闻是新浪网官方出品的新闻客户端，用户可以第一时间获取新浪网提供的高品质的全球资讯新闻，随时随地享受专业的资讯服务，加入一起吧\",\"url\": \"http://app.sina.com.cn/appdetail.php?appID=84475\",\"invite_logo\":\"http://sinastorage.com/appimage/iconapk/1b/75/76a9bb371f7848d2a7270b1c6fcf751b.png\"}";
     
-    [WeiboSDK inviteFriend:jsonData withUid:[textField text] withToken:[self getWBToken] delegate:self withTag:@"invite1"];
+    //[WeiboSDK inviteFriend:jsonData withUid:(NSString*)[alertView textFieldAtIndex:0] withToken:[self getWBToken] delegate:self withTag:@"invite1"];
 }
 
 - (void)request:(WBHttpRequest *)request didFinishLoadingWithResult:(NSString *)result
@@ -140,6 +152,11 @@
                              cancelButtonTitle:@"确定"
                              otherButtonTitles:nil];
     [alert show];
+    
+    if (self.requestCompletion) {
+        self.requestCompletion([self _JSONParser:result]);
+        self.requestCompletion = nil;
+    }
 }
 
 - (void)request:(WBHttpRequest *)request didFailWithError:(NSError *)error;
@@ -154,5 +171,27 @@
                              cancelButtonTitle:@"确定"
                              otherButtonTitles:nil];
     [alert show];
+}
+
+-(id)_JSONParser:(NSString*)JSONString{
+    
+    NSData* jsonData = [JSONString dataUsingEncoding:NSUTF8StringEncoding];
+    
+    NSError* error = nil;
+    NSArray* jsonArray = nil;
+    NSDictionary* jsonDictionary = nil;
+    if (jsonData) {
+        id _jsonObject = [NSJSONSerialization JSONObjectWithData:jsonData                                                 options:NSJSONReadingMutableContainers error:&error];
+        if ([_jsonObject isKindOfClass:[NSDictionary class]]) {
+            jsonDictionary = (NSDictionary*)_jsonObject;
+            NSLog(@"%@",jsonDictionary);
+            return jsonDictionary;
+        }else if ([_jsonObject isKindOfClass:[NSMutableArray class]]) {
+            jsonArray = (NSArray*)_jsonObject;
+            NSLog(@"%@",jsonArray);
+            return jsonArray;
+        }
+    }
+    return nil;
 }
 @end

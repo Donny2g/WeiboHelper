@@ -10,4 +10,8 @@
 
 @interface ViewController : UIViewController
 
+@property (weak, nonatomic) IBOutlet UITextView *userInfo;
+- (IBAction)login:(id)sender;
+- (IBAction)logout:(id)sender;
+- (IBAction)getUserInfo:(id)sender;
 @end
