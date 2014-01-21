@@ -10,8 +10,12 @@
 #import "WeiboSDK.h"
 typedef void(^RequestCompletion)(id result);
 
-//com.sina.weibo.SNWeiboSDKDemo
+//微博Demo用的
+//bundleID com.sina.weibo.SNWeiboSDKDemo
 //#define kAppKey         @"2045436852"
+//#define kRedirectURI    @"http://www.sina.com"
+
+//改成自己申請的
 #define kAppKey         @"2748264993"
 #define kRedirectURI    @"https://open.weibo.cn/oauth2/authorize"
 #define kToken          @"WBToken"
@@ -35,4 +39,5 @@ typedef void(^RequestCompletion)(id result);
 
 //getUserInfo
 -(void)getUserInfoWithCompletion:(RequestCompletion)completion;
+
 @end

@@ -37,7 +37,7 @@
 - (IBAction)getUserInfo:(id)sender {
     [[WeiboHelper sharedInstance] getUserInfoWithCompletion:^(id result) {
         NSString *title = @"User Information";
-        NSString *message = [NSString stringWithFormat:@"名稱: %@\n生日: %@\n性別: %@",[result objectForKey:@"screen_name"], [result objectForKey:@""], [result objectForKey:@"gender"]];
+        NSString *message = [NSString stringWithFormat:@"名稱: %@\n生日: %@\n性別: %@\nuid: %@\n所在地: %@\n帳號建立時間:%@",[result objectForKey:@"screen_name"], [result objectForKey:@""], [result objectForKey:@"gender"], [result objectForKey:@"idstr"], [result objectForKey:@"location"], [result objectForKey:@"created_at"]];
         UIAlertView *alert = [[UIAlertView alloc] initWithTitle:title
                                                         message:message
                                                        delegate:nil
@@ -45,8 +45,6 @@
                                               otherButtonTitles:nil];
         [alert show];
     }];
-
-    
 
 }
 @end

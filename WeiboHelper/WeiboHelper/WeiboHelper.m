@@ -72,7 +72,7 @@
     }
     self.requestCompletion = completion;
     NSDictionary* userInfo =[[NSUserDefaults standardUserDefaults] dictionaryForKey:kUserInfo];
-    NSString* url = @"http://api.weibo.com/2/users/show.json";
+    NSString* url = @"https://api.weibo.com/2/users/show.json";
     
     //測試用(官方帳號)
 //    NSDictionary* params = @{@"access_token": @"2.00zBrJ2EjQ8zzC15a429a8ff2pybUD",
@@ -89,15 +89,17 @@
 
 
 #pragma mark- WeiboSDKDelegate
+//微博App來跟我們寫的App要資料，會觸發這裡，你可以透過[WeiboSDK sendResponse:]回傳資料回去
 - (void)didReceiveWeiboRequest:(WBBaseRequest *)request
 {
     if ([request isKindOfClass:WBProvideMessageForWeiboRequest.class])
     {
         //ProvideMessageForWeiboViewController *controller = [[[ProvideMessageForWeiboViewController alloc] init] autorelease];
         //[self.viewController presentModalViewController:controller animated:YES];
+        NSLog(@"收到來自微博App的請求");
     }
 }
-//這裡是用來接，微博App收到
+//這裡是用來接，微博App收到我們的請求的所發出的callback
 - (void)didReceiveWeiboResponse:(WBBaseResponse *)response
 {
     if ([response isKindOfClass:WBSendMessageToWeiboResponse.class])
@@ -128,6 +130,7 @@
         NSLog(@"userInfo:%@",response.userInfo);
         
     }
+    NSLog(@"收到來自微博App的回應");
 }
 
 //當你用這個方法去呼叫時[WBHttpRequest requestWithAccessToken:...]，就會call back回下面的Delegate
@@ -194,4 +197,6 @@
     }
     return nil;
 }
+
+
 @end
